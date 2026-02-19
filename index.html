@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="gl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sentinela App | Ultimate</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;800;900&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --c-purple: #8b5cf6;
+            --c-pink: #ec4899;
+            --c-cyan: #06b6d4;
+            --font-main: 'Outfit', sans-serif;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+        }
+
+        body { font-family: var(--font-main); background-color: #000; margin: 0; overflow: hidden; }
+        ::-webkit-scrollbar { display: none; }
+        .hide-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        
+        .app-container {
+            max-width: 430px; height: 100dvh; margin: 0 auto; background: #fafafa; position: relative;
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 50px rgba(139, 92, 246, 0.2);
+        }
+
+        .gradient-text { background: linear-gradient(135deg, var(--c-purple), var(--c-pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .gradient-bg { background: linear-gradient(135deg, var(--c-purple), var(--c-pink)); }
+
+        .view-content { flex: 1; overflow-y: auto; padding-bottom: 90px; }
+        .view-section { display: none; animation: fadeIn 0.3s ease; }
+        .view-section.active { display: block; }
+
+        .chic-card { background: #ffffff; border-radius: 20px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03); border: 1px solid rgba(0,0,0,0.02); }
+        .btn-chic { background: #111827; color: white; border-radius: 9999px; padding: 12px 24px; font-weight: 700; transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 8px; border: none; width: 100%; cursor: pointer;}
+        .btn-chic:active { transform: scale(0.95); }
+
+        /* Navegación Inferior */
+        .bottom-nav { position: absolute; bottom: 0; width: 100%; height: 80px; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: center; padding-bottom: 15px; z-index: 50; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #9ca3af; font-size: 20px; transition: 0.3s; position: relative; width: 25%; cursor: pointer; }
+        .nav-item.active { color: var(--c-purple); }
+        .nav-item.active::after { content: ''; position: absolute; bottom: -8px; width: 4px; height: 4px; background: var(--c-pink); border-radius: 50%; }
+
+        /* Sub-Navegación */
+        .sub-nav { display: flex; gap: 10px; margin-bottom: 20px; overflow-x: auto; padding-bottom: 5px; }
+        .pill-btn { white-space: nowrap; padding: 8px 16px; border-radius: 99px; font-size: 11px; font-weight: 700; background: #fff; border: 1px solid #e5e7eb; color: #6b7280; transition: 0.2s; cursor: pointer;}
+        .pill-btn.active { background: #111827; color: #fff; border-color: #111827; }
+
+        /* Dots & Maps */
+        .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+        .dot.green { background: #22c55e; box-shadow: 0 0 5px #22c55e; }
+        .dot.red { background: #ef4444; box-shadow: 0 0 5px #ef4444; }
+        .dot.yellow { background: #eab308; box-shadow: 0 0 5px #eab308; }
+        .heatmap-blob { position: absolute; border-radius: 50%; filter: blur(15px); mix-blend-mode: multiply; animation: pulse-heat 3s infinite alternate; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes pulse-heat { 0% { transform: scale(1); opacity: 0.6; } 100% { transform: scale(1.2); opacity: 0.9; } }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div class="w-full bg-white/90 backdrop-blur z-40 px-5 pt-4 pb-2 flex justify-between items-center border-b border-gray-100">
+        <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg gradient-bg flex items-center justify-center text-white text-[10px] shadow-md"><i class="fas fa-shield-halved"></i></div>
+            <span class="font-black tracking-tight text-gray-900" style="font-family: var(--font-display);">SENTINELA</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="bg-gray-100 text-gray-500 text-[10px] font-bold px-2 py-1 rounded-full"><i class="fas fa-store"></i> Local #1</span>
+        </div>
+    </div>
+
+    <div class="view-content px-4 py-4 relative bg-gray-50">
+        <div class="absolute top-0 right-0 w-64 h-64 bg-purple-200 rounded-full blur-3xl opacity-30 -z-10"></div>
+        
+        <div id="view-home" class="view-section active">
+            <h2 class="text-3xl font-black text-gray-900 leading-tight mb-4" style="font-family: var(--font-display);">Ola, <span class="gradient-text">Fundador</span>.</h2>
+            
+            <div class="chic-card p-5 mb-5 bg-gray-900 text-white relative overflow-hidden shadow-xl">
+                <div class="absolute -right-10 -top-10 w-32 h-32 bg-pink-500 rounded-full blur-3xl opacity-20"></div>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold text-gray-400 uppercase tracking-wider">Estado do Sistema</span>
+                    <span class="text-[10px] bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span> ONLINE</span>
+                </div>
+                <div class="text-3xl font-black mb-1">Protección Activa</div>
+                <p class="text-xs text-gray-400 font-medium">As túas 4 cámaras e a IA operan con normalidade.</p>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex justify-between items-end mb-2">
+                    <h3 class="text-sm font-black text-gray-900 uppercase tracking-tight">Cámara Principal</h3>
+                    <span class="text-[9px] text-red-500 font-bold flex items-center gap-1"><span class="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse"></span> LIVE</span>
+                </div>
+                <div class="chic-card rounded-2xl overflow-hidden relative h-36 border border-gray-200 shadow-sm cursor-pointer" onclick="switchView('analytics', document.getElementById('nav-analytics')); switchSubTab('security', document.querySelector('.pill-btn:nth-child(3)'))">
+                    <img src="https://images.unsplash.com/photo-1552566626-52f8b828add9?q=80&w=600" class="w-full h-full object-cover grayscale-[30%]">
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                    <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20"><div class="w-full h-1 bg-green-400 blur-sm animate-[scanline_3s_linear_infinite]"></div></div>
+                    <div class="absolute top-[30%] left-[20%] border border-green-400 rounded w-[15%] h-[40%] bg-green-400/10"></div>
+                    <div class="absolute top-[45%] right-[25%] border border-purple-500 rounded w-[18%] h-[35%] bg-purple-500/10"></div>
+                    <div class="absolute bottom-2 left-2 text-[8px] font-mono text-white bg-black/50 px-1.5 py-0.5 rounded">CAM_01_CAIXA</div>
+                    <div class="absolute bottom-2 right-2 text-[8px] font-mono text-green-400 bg-black/50 px-1.5 py-0.5 rounded">AI: DETECTING (2)</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-2 mb-6">
+                <div class="chic-card p-3 bg-white text-center">
+                    <div class="text-[9px] font-bold text-gray-400 uppercase mb-1">Afluencia</div>
+                    <div class="text-lg font-black text-gray-900">342</div>
+                </div>
+                <div class="chic-card p-3 bg-white text-center">
+                    <div class="text-[9px] font-bold text-gray-400 uppercase mb-1">Tickets</div>
+                    <div class="text-lg font-black text-purple-600">215</div>
+                </div>
+                <div class="chic-card p-3 bg-white text-center border border-pink-100 bg-pink-50">
+                    <div class="text-[9px] font-bold text-pink-500 uppercase mb-1">Conversión</div>
+                    <div class="text-lg font-black text-pink-600">62%</div>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-3 mb-8">
+                <div class="flex flex-col items-center gap-2 cursor-pointer" onclick="switchView('analytics', document.getElementById('nav-analytics'))">
+                    <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-purple-600 text-lg border border-gray-100"><i class="fas fa-chart-line"></i></div>
+                    <span class="text-[9px] font-bold text-gray-600">Xestión</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 cursor-pointer">
+                    <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-pink-500 text-lg border border-gray-100"><i class="fas fa-video"></i></div>
+                    <span class="text-[9px] font-bold text-gray-600">Gravacións</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 cursor-pointer">
+                    <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-cyan-500 text-lg border border-gray-100"><i class="fas fa-file-invoice"></i></div>
+                    <span class="text-[9px] font-bold text-gray-600">Informes</span>
+                </div>
+                <div class="flex flex-col items-center gap-2 cursor-pointer">
+                    <div class="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-gray-700 text-lg border border-gray-100"><i class="fas fa-headset"></i></div>
+                    <span class="text-[9px] font-bold text-gray-600">Soporte</span>
+                </div>
+            </div>
+
+            <div class="mb-2 flex justify-between items-end">
+                <h3 class="text-lg font-black text-gray-900">O Fío de Sentinela</h3>
+                <span class="text-[10px] text-purple-600 font-bold">Ver arquivo</span>
+            </div>
+            
+            <div class="flex gap-4 overflow-x-auto hide-scroll pb-4 snap-x">
+                <div class="chic-card min-w-[280px] p-5 snap-center shrink-0 border-l-4 border-l-purple-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-[9px] font-bold text-purple-600 uppercase bg-purple-50 inline-block px-2 py-1 rounded">Actualización V14.2</div>
+                        <div class="text-[9px] font-bold text-gray-400">Fai 2h</div>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-900 mb-2">Motor ViSIA TPV Mellorado</h4>
+                    <p class="text-[11px] text-gray-500 leading-relaxed mb-3">A nosa nova rede neuronal agora analiza os movementos das mans na caixa e crúzaos en milisegundos cos códigos de barras do SmartPOS. Conseguimos unha <strong>redución do 99.8% en perdas por 'Sweethearting'</strong> (non cobrar produtos a amigos). Xa está operando no teu servidor local sen custo adicional.</p>
+                </div>
+                
+                <div class="chic-card min-w-[280px] p-5 snap-center shrink-0 border-l-4 border-l-pink-500 cursor-pointer" onclick="switchView('shop', document.getElementById('nav-shop'))">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-[9px] font-bold text-pink-500 uppercase bg-pink-50 inline-block px-2 py-1 rounded">Novo Hardware</div>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-900 mb-2">ViSIA Cam 360 Pro</h4>
+                    <p class="text-[11px] text-gray-500 leading-relaxed mb-3">Lente <i>fisheye</i> de 12 Megapíxeles cunha NPU (Unidade de Procesamento Neuronal) integrada. <strong>Procesa a intelixencia artificial na propia cámara</strong> para non saturar a túa rede wifi. Visión nocturna nítida ata 20m. Ideal para cubrir salas grandes sen ángulos cegos.</p>
+                    <div class="text-[10px] font-bold text-pink-500 bg-pink-50/50 py-1.5 px-3 rounded-lg text-center">Reservar con 15% de desconto <i class="fas fa-arrow-right ml-1"></i></div>
+                </div>
+
+                <div class="chic-card min-w-[280px] p-5 snap-center shrink-0 border-l-4 border-l-cyan-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="text-[9px] font-bold text-cyan-600 uppercase bg-cyan-50 inline-block px-2 py-1 rounded">Financiamento</div>
+                        <div class="text-[9px] font-bold text-gray-400">Onte</div>
+                    </div>
+                    <h4 class="text-base font-bold text-gray-900 mb-2">Rolda Seed de 1.5M€ pechada</h4>
+                    <p class="text-[11px] text-gray-500 leading-relaxed mb-3">Grazas á confianza dos nosos clientes, pechamos unha nova rolda de investimento. Este capital destinarase a <strong>ampliar o noso equipo de enxeñaría en Galicia</strong> e a adestrar un novo modelo de IA preditiva para entender os patróns de compra antes de que ocorran.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-analytics" class="view-section">
+            <div class="flex justify-between items-end mb-4">
+                <h2 class="text-3xl font-black text-gray-900 leading-none" style="font-family: var(--font-display);">Control <span class="gradient-text">Total</span></h2>
+            </div>
+
+            <div class="sub-nav hide-scroll">
+                <button class="pill-btn active" onclick="switchSubTab('team', this)">👥 O Equipo</button>
+                <button class="pill-btn" onclick="switchSubTab('business', this)">📈 Negocio</button>
+                <button class="pill-btn" onclick="switchSubTab('security', this)">🛡️ Seguridade</button>
+            </div>
+
+            <div id="sub-team" class="sub-section space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="chic-card p-4 bg-white">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase">Quenda Actual</div>
+                        <div class="text-2xl font-black text-gray-900">4 <span class="text-sm font-normal text-gray-400">/ 5</span></div>
+                        <div class="text-[10px] text-red-500 font-bold mt-1"><i class="fas fa-exclamation-circle"></i> 1 Ausencia</div>
+                    </div>
+                    <div class="chic-card p-4 bg-white">
+                        <div class="text-[10px] font-bold text-gray-400 uppercase">Horas Extra</div>
+                        <div class="text-2xl font-black text-purple-600">+2.5h</div>
+                        <div class="text-[10px] text-gray-400 mt-1">Hoxe</div>
+                    </div>
+                </div>
+
+                <div class="chic-card p-2 bg-white">
+                    <div class="p-3 border-b border-gray-100 flex justify-between items-center">
+                        <h4 class="font-bold text-sm text-gray-900">Estado en Tempo Real</h4>
+                        <span class="text-[9px] bg-gray-100 text-gray-500 px-2 py-1 rounded">Quenda Mañá</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 border-b border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden"><img src="https://i.pravatar.cc/150?img=33" class="w-full h-full object-cover"></div>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm text-gray-900">Ana M.</div>
+                            <div class="text-[10px] text-gray-500">Entrada: 07:58 <span class="text-green-500">(Puntual)</span></div>
+                        </div>
+                        <div class="text-right"><span class="dot green animate-pulse"></span><div class="text-[9px] font-bold text-gray-400">TRABALLANDO</div></div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 border-b border-gray-50">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden"><img src="https://i.pravatar.cc/150?img=11" class="w-full h-full object-cover"></div>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm text-gray-900">Carlos R.</div>
+                            <div class="text-[10px] text-gray-500">Entrada: 08:00</div>
+                        </div>
+                        <div class="text-right"><span class="dot yellow"></span><div class="text-[9px] font-bold text-yellow-600">EXTRA (+1h)</div></div>
+                    </div>
+                    <div class="flex items-center gap-3 p-3 opacity-60">
+                        <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden grayscale"><img src="https://i.pravatar.cc/150?img=5" class="w-full h-full object-cover"></div>
+                        <div class="flex-1">
+                            <div class="font-bold text-sm text-gray-900">Lucía P.</div>
+                            <div class="text-[10px] text-red-500 font-bold">NON SE PRESENTOU</div>
+                        </div>
+                        <div class="text-right"><span class="dot red"></span><div class="text-[9px] font-bold text-red-500">AUSENTE</div></div>
+                    </div>
+                </div>
+
+                <div class="chic-card p-4 bg-gray-900 text-white border-l-4 border-red-500 relative overflow-hidden">
+                    <div class="absolute right-0 top-0 text-gray-800 opacity-20 text-6xl -mr-4 -mt-2"><i class="fas fa-user-secret"></i></div>
+                    <h4 class="text-xs font-bold text-red-400 uppercase mb-2 flex items-center gap-2"><i class="fas fa-exclamation-triangle"></i> Anomalía Detectada</h4>
+                    <p class="text-sm font-bold mb-1">Posible Furto Interno</p>
+                    <p class="text-[10px] text-gray-400 mb-3">O empregado <strong>Carlos R.</strong> anulou 3 tickets e a cámara non detectou devolución de produto.</p>
+                    <button class="w-full py-2 bg-red-600 rounded-lg text-xs font-bold hover:bg-red-500 transition">Ver Clip de Vídeo (14:30h)</button>
+                </div>
+            </div>
+
+            <div id="sub-business" class="sub-section hidden space-y-4">
+                <div class="chic-card p-4">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-3"><i class="fas fa-smile text-purple-600"></i> Análise de Reputación</h4>
+                    <div class="flex items-end gap-2 mb-2">
+                        <span class="text-3xl font-black text-gray-900">4.8</span>
+                        <div class="flex text-yellow-400 text-sm mb-1"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star-half-alt"></i></div>
+                        <span class="text-[10px] text-gray-400 mb-1">(Últimos 7 días)</span>
+                    </div>
+                    <div class="w-full h-3 bg-gray-100 rounded-full overflow-hidden flex mb-3">
+                        <div class="h-full bg-green-500 w-[85%]"></div><div class="h-full bg-yellow-400 w-[10%]"></div><div class="h-full bg-red-500 w-[5%]"></div>
+                    </div>
+                    <div class="bg-purple-50 p-3 rounded-xl border border-purple-100">
+                        <div class="text-[10px] font-bold text-purple-600 mb-1"><i class="fas fa-robot"></i> Resumo IA:</div>
+                        <p class="text-[11px] text-gray-600 leading-tight">Os clientes louban a rapidez do servizo hoxe. Detectouse unha queixa recorrente sobre a "temperatura do local".</p>
+                    </div>
+                </div>
+
+                <div class="chic-card p-4">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-4"><i class="fas fa-tag text-pink-500"></i> Top Vendas (Live)</h4>
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3"><div class="text-sm font-bold text-gray-400 w-4">1</div><div class="flex-1"><div class="flex justify-between text-xs font-bold text-gray-900 mb-1"><span>Café Especialidade</span><span>142 un.</span></div><div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-gradient-to-r from-purple-600 to-pink-500 h-1.5 rounded-full w-[90%]"></div></div></div></div>
+                        <div class="flex items-center gap-3"><div class="text-sm font-bold text-gray-400 w-4">2</div><div class="flex-1"><div class="flex justify-between text-xs font-bold text-gray-900 mb-1"><span>Tosta Aguacate</span><span>89 un.</span></div><div class="w-full bg-gray-100 rounded-full h-1.5"><div class="bg-purple-400 h-1.5 rounded-full w-[60%]"></div></div></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="sub-security" class="sub-section hidden space-y-4">
+                
+                <div class="chic-card p-4">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2"><i class="fas fa-fire text-pink-500"></i> Zonas Quentes (Heatmap)</h4>
+                    <div class="relative w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
+                        <img src="https://images.unsplash.com/photo-1556742049-0cfed4f7a07d?q=80&w=600" class="w-full h-full object-cover opacity-60 grayscale">
+                        <div class="heatmap-blob bg-pink-500 w-16 h-16 top-[20%] left-[20%]"></div>
+                        <div class="heatmap-blob bg-purple-600 w-24 h-24 bottom-[10%] right-[10%]"></div>
+                        <div class="absolute bottom-2 left-2 bg-white/90 backdrop-blur text-[9px] font-bold px-2 py-1 rounded shadow text-gray-700">ZONA TPV: Alta retención</div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="chic-card p-4">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase mb-2">Público Estimado</h4>
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="text-lg font-black text-gray-900">62%</div>
+                            <i class="fas fa-venus text-pink-500"></i>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <div class="text-lg font-black text-gray-900">38%</div>
+                            <i class="fas fa-mars text-purple-500"></i>
+                        </div>
+                    </div>
+                    <div class="chic-card p-4 flex flex-col justify-center items-center text-center">
+                        <h4 class="text-[10px] font-bold text-gray-400 uppercase mb-1">Idade Media</h4>
+                        <div class="text-4xl font-black gradient-text">34</div>
+                        <div class="text-[10px] font-bold text-gray-500 mt-1">Anos</div>
+                    </div>
+                </div>
+
+                <div class="chic-card p-4">
+                    <h4 class="text-xs font-bold text-gray-500 uppercase mb-3 flex items-center gap-2"><i class="fas fa-chart-bar text-purple-600"></i> Funil: Tráfico vs Tickets</h4>
+                    <div class="h-[150px] w-full relative"><canvas id="trafficChart"></canvas></div>
+                </div>
+
+                <div class="chic-card p-4 bg-gray-900 text-white">
+                    <h4 class="text-xs font-bold text-gray-400 uppercase mb-4 flex items-center gap-2">
+                        <i class="fas fa-eye text-yellow-500"></i> Alertas de Comportamento
+                    </h4>
+                    <div class="space-y-4">
+                        <div class="flex items-start gap-3 border-b border-gray-700 pb-3">
+                            <div class="w-8 h-8 rounded-full bg-red-500/20 text-red-500 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-user-clock"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-white">Merodeo en Andel 4</div>
+                                <div class="text-[10px] text-gray-400 mt-1">Suxeito #204 permaneceu > 8 mins nun punto cego sen coller produtos.</div>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="w-8 h-8 rounded-full bg-yellow-500/20 text-yellow-500 flex items-center justify-center shrink-0 mt-1"><i class="fas fa-receipt"></i></div>
+                            <div>
+                                <div class="text-sm font-bold text-white">Descuadre SmartPOS</div>
+                                <div class="text-[10px] text-gray-400 mt-1">Cam_Caxa detectou 3 persoas na fila, pero só se emitiron 2 tickets.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="view-shop" class="view-section space-y-5">
+            <h2 class="text-3xl font-black text-gray-900 leading-none" style="font-family: var(--font-display);">Boutique</h2>
+            
+            <div class="chic-card relative overflow-hidden h-48 flex items-end p-4 cursor-pointer" onclick="alert('Engadido ao carriño!')">
+                <img src="https://images.unsplash.com/photo-1512756290469-ec264b7fbf87?q=80&w=800" class="absolute inset-0 w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent"></div>
+                <div class="absolute top-4 right-4 bg-pink-500 text-white text-[9px] font-bold uppercase tracking-wider px-2 py-1 rounded shadow-lg">Novo Lanzamento</div>
+                <div class="relative z-10 w-full">
+                    <h3 class="text-xl font-black text-white mb-1">ViSIA Cam 360°</h3>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs text-gray-300 w-2/3">A cámara coa NPU integrada máis avanzada do mercado.</p>
+                        <div class="text-lg font-black text-pink-400">349€</div>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <h4 class="text-sm font-black text-gray-900 mb-3">Equipamento Core</h4>
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="chic-card p-3 flex flex-col h-full bg-white relative">
+                        <span class="absolute top-2 left-2 bg-purple-100 text-purple-600 text-[8px] font-bold px-2 py-0.5 rounded">MÁIS VENDIDO</span>
+                        <div class="h-24 bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1557597774-9d2739f85a94?q=80&w=300" class="w-full h-full object-cover mix-blend-multiply">
+                        </div>
+                        <h5 class="text-xs font-bold text-gray-900 mb-1">ViSIA Cam 4K</h5>
+                        <p class="text-[9px] text-gray-500 mb-3 flex-grow">Lente Starvis nocturna.</p>
+                        <div class="flex justify-between items-center mt-auto">
+                            <span class="font-black text-gray-900 text-sm">249€</span>
+                            <button class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition"><i class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+
+                    <div class="chic-card p-3 flex flex-col h-full bg-white relative">
+                        <div class="h-24 bg-gray-50 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+                            <img src="https://images.unsplash.com/photo-1591405351990-4726e331f141?q=80&w=300" class="w-full h-full object-cover mix-blend-multiply">
+                        </div>
+                        <h5 class="text-xs font-bold text-gray-900 mb-1">Edge Nano</h5>
+                        <p class="text-[9px] text-gray-500 mb-3 flex-grow">Servidor local de IA.</p>
+                        <div class="flex justify-between items-center mt-auto">
+                            <span class="font-black text-gray-900 text-sm">800€</span>
+                            <button class="w-6 h-6 rounded-full bg-gray-100 text-gray-600 flex items-center justify-center hover:bg-purple-600 hover:text-white transition"><i class="fas fa-plus text-[10px]"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chic-card p-4 border-2 border-purple-100 bg-purple-50/50 flex gap-4 items-center">
+                <div class="w-12 h-12 rounded-xl gradient-bg flex items-center justify-center text-white text-xl shadow-lg"><i class="fas fa-brain"></i></div>
+                <div class="flex-1">
+                    <h4 class="font-bold text-gray-900 text-sm">Licenza ViSIA Pro</h4>
+                    <p class="text-[10px] text-gray-500">Subscrición software mensual.</p>
+                </div>
+                <div class="text-right">
+                    <div class="font-black text-purple-600">59€<span class="text-[9px] font-normal text-gray-500">/mes</span></div>
+                </div>
+            </div>
+            
+            <button class="btn-chic w-full !mt-6 shadow-xl"><i class="fas fa-shopping-cart text-sm mr-1"></i> Ver Carriño (0)</button>
+        </div>
+
+        <div id="view-settings" class="view-section">
+             <h2 class="text-3xl font-black text-gray-900 mb-6" style="font-family: var(--font-display);">Axustes</h2>
+             <div class="chic-card p-4 text-sm font-bold text-gray-600">
+                 <div class="flex justify-between py-3 border-b border-gray-100"><span>Notificacións Push</span> <i class="fas fa-toggle-on text-purple-600 text-lg"></i></div>
+                 <div class="flex justify-between py-3 border-b border-gray-100"><span>Modo Privacidade (Blur)</span> <i class="fas fa-toggle-on text-purple-600 text-lg"></i></div>
+                 <div class="flex justify-between py-3"><span>Pechar Sesión</span> <i class="fas fa-sign-out-alt text-red-500"></i></div>
+             </div>
+        </div>
+
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchView('home', this)">
+            <i class="fas fa-home"></i><span class="text-[9px] font-bold mt-1">Inicio</span>
+        </div>
+        <div class="nav-item" id="nav-analytics" onclick="switchView('analytics', this)">
+            <i class="fas fa-chart-pie"></i><span class="text-[9px] font-bold mt-1">Xestión</span>
+        </div>
+        <div class="nav-item" id="nav-shop" onclick="switchView('shop', this)">
+            <i class="fas fa-store"></i><span class="text-[9px] font-bold mt-1">Tenda</span>
+        </div>
+        <div class="nav-item" onclick="switchView('settings', this)">
+            <i class="fas fa-cog"></i><span class="text-[9px] font-bold mt-1">Axustes</span>
+        </div>
+    </nav>
+
+</div>
+
+<script>
+    // --- NAVEGACIÓN PRINCIPAL DA APP ---
+    function switchView(viewId, btn) {
+        document.querySelectorAll('.view-section').forEach(v => v.classList.remove('active'));
+        document.getElementById('view-' + viewId).classList.add('active');
+        
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // --- CONTROL DE SUB-PESTANAS EN "XESTIÓN" ---
+    let chartInstance = null;
+
+    function switchSubTab(tabName, btn) {
+        document.getElementById('sub-team').classList.add('hidden');
+        document.getElementById('sub-business').classList.add('hidden');
+        document.getElementById('sub-security').classList.add('hidden');
+        
+        document.getElementById('sub-' + tabName).classList.remove('hidden');
+
+        document.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        if(tabName === 'security') {
+            initTrafficChart();
+        }
+    }
+
+    // --- GRÁFICA DE AFLUENCIA (Chart.js) ---
+    function initTrafficChart() {
+        const ctx = document.getElementById('trafficChart').getContext('2d');
+        if(chartInstance) return; 
+
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['10h', '12h', '14h', '16h', '18h', '20h'],
+                datasets: [
+                    { label: 'Persoas', data: [45, 120, 210, 150, 180, 250], backgroundColor: '#ec4899', borderRadius: 4, barPercentage: 0.6 },
+                    { label: 'Tickets', data: [30, 95, 180, 120, 150, 190], backgroundColor: '#8b5cf6', borderRadius: 4, barPercentage: 0.6 }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { x: { grid: { display: false } }, y: { display: false } },
+                animation: { duration: 1500, easing: 'easeOutQuart' }
+            }
+        });
+    }
+</script>
+</body>
+</html>
